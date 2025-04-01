@@ -162,6 +162,34 @@
             font-weight: bold;
         }
         
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .btn-reset {
+            background-color: var(--danger);
+        }
+        
+        .btn-reset:hover {
+            background-color: #c0392b;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 grid-template-columns: 1fr;
@@ -177,6 +205,7 @@
     <div class="instructions">
         <p><strong>HOW TO USE:</strong> Enter your budget for each category in the Summary By Category table below. 
         Enter actual spending values to see how your actual spending compares with your budget. All charts and calculations will update automatically.</p>
+        <p><strong>Note:</strong> Your data is saved in your browser. It will persist between sessions until you clear it manually.</p>
     </div>
     
     <div class="container">
@@ -210,12 +239,17 @@
                 <!-- Table rows will be populated by JavaScript -->
             </tbody>
         </table>
+        
+        <div class="controls">
+            <button id="saveBtn" class="btn">Save Data</button>
+            <button id="resetBtn" class="btn btn-reset">Reset Data</button>
+        </div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script>
-        // Initial data
-        const categories = [
+        // Default data - will be used if no saved data exists
+        const defaultCategories = [
             { name: 'Cooking', budget: 6000, actual: 0, color: '#3498db' },
             { name: 'Cleaning', budget: 1000, actual: 0, color: '#2ecc71' },
             { name: 'Utensils', budget: 1000, actual: 0, color: '#95a5a6' },
@@ -231,16 +265,54 @@
             { name: 'Other', budget: 11000, actual: 60, color: '#3498db' }
         ];
         
+        // Categories array - will be loaded from localStorage or defaults
+        let categories = [];
+        
         // Chart instances
         let donutChart;
         let barChart;
         
         // Initialize the application
         function initApp() {
+            loadData();
             populateTable();
             initDonutChart();
             initBarChart();
             updateCharts();
+            setupEventListeners();
+        }
+        
+        // Load data from localStorage
+        function loadData() {
+            const savedData = localStorage.getItem('budgetTrackerData');
+            if (savedData) {
+                categories = JSON.parse(savedData);
+            } else {
+                categories = JSON.parse(JSON.stringify(defaultCategories)); // Deep copy
+            }
+        }
+        
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('budgetTrackerData', JSON.stringify(categories));
+            alert('Data saved successfully!');
+        }
+        
+        // Reset data to defaults
+        function resetData() {
+            if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+                categories = JSON.parse(JSON.stringify(defaultCategories)); // Deep copy
+                saveData();
+                populateTable();
+                updateCharts();
+                alert('Data has been reset to defaults.');
+            }
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('saveBtn').addEventListener('click', saveData);
+            document.getElementById('resetBtn').addEventListener('click', resetData);
         }
         
         // Populate the budget table
@@ -297,6 +369,9 @@
             const value = parseFloat(input.value) || 0;
             
             categories[index][type] = value;
+            
+            // Auto-save after each change
+            localStorage.setItem('budgetTrackerData', JSON.stringify(categories));
             
             populateTable();
             updateCharts();
